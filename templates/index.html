@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Phishing Link Scanner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+
+    <main class="container">
+        <header class="top">
+            <div class="badge-pill">🛡️ Phishing Link Scanner</div>
+            <h1 class="hero-title">Is this link <span class="title-text">safe?</span></h1>
+            <p class="hero-sub">Paste a link. We read it, we never open it.</p>
+        </header>
+
+        <form method="POST" action="/" class="scan-form" id="scan-form">
+            <div class="prompt">
+                <span class="prompt-sign">&gt;</span>
+                <input type="text" id="url" name="url" value="{{ url }}" placeholder="Paste a link here" autocomplete="off" spellcheck="false" maxlength="2000" required>
+            </div>
+            <button type="submit" class="btn full-btn">Scan link ⚡</button>
+        </form>
+
+        {% if error %}
+        <div class="card error">⚠️ {{ error }}</div>
+        {% endif %}
+
+        {% if result %}
+        <section class="card result {{ result.risk|lower }}">
+            <p class="label">Risk level</p>
+            <h2 class="risk">{{ result.icon }} {{ result.risk }}</h2>
+            <progress class="meter {{ result.risk|lower }}" value="{{ result.score }}" max="100"></progress>
+            <p class="score">Risk score: {{ result.score }} / 100</p>
+            <p class="advice">{{ result.advice }}</p>
+
+            <div class="facts">
+                <div>
+                    <span>Checked link</span>
+                    <code>{{ result.url }}</code>
+                </div>
+                <div>
+                    <span>Real domain</span>
+                    <code>{{ result.registered }}</code>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2 class="section-title">What we found</h2>
+            {% if result.findings %}
+                {% for f in result.findings %}
+                <div class="finding {{ f.level }}">
+                    <span class="dot"></span>
+                    <div>
+                        <p class="f-title">{{ f.title }}</p>
+                        <p class="f-detail">{{ f.detail }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="clean">No warning signs found in the text of this link.</p>
+            {% endif %}
+        </section>
+        {% endif %}
+
+        <section class="examples">
+            <h2 class="ex-title">Try an example <span>(click one to scan it)</span></h2>
+
+            <p class="ex-group safe-label">✅ Safe links</p>
+            <div class="chips safe">
+                <button type="button" class="sample" data-url="https://www.google.com" title="https://www.google.com">Google</button>
+                <button type="button" class="sample" data-url="https://www.irctc.co.in/nget/train-search" title="https://www.irctc.co.in/nget/train-search">IRCTC</button>
+                <button type="button" class="sample" data-url="https://www.flipkart.com/mobiles" title="https://www.flipkart.com/mobiles">Flipkart</button>
+                <button type="button" class="sample" data-url="https://github.com/python/cpython" title="https://github.com/python/cpython">GitHub</button>
+                <button type="button" class="sample" data-url="https://support.microsoft.com/en-in" title="https://support.microsoft.com/en-in">Microsoft support</button>
+            </div>
+
+            <p class="ex-group warn-label">⚠️ Suspicious links</p>
+            <div class="chips warn">
+                <button type="button" class="sample" data-url="https://bit.ly/3xYzAb" title="https://bit.ly/3xYzAb">Short link</button>
+                <button type="button" class="sample" data-url="http://my-college-portal.com/student/login" title="http://my-college-portal.com/student/login">Unsecure login</button>
+                <button type="button" class="sample" data-url="https://secure-update.top/home" title="https://secure-update.top/home">Fake update page</button>
+                <button type="button" class="sample" data-url="https://login.verify.account.update.example.com/home" title="https://login.verify.account.update.example.com/home">Subdomain maze</button>
+            </div>
+
+            <p class="ex-group bad-label">🚨 Phishing links</p>
+            <div class="chips bad">
+                <button type="button" class="sample" data-url="https://amazon.in.account-verify.xyz/login" title="https://amazon.in.account-verify.xyz/login">Fake Amazon</button>
+                <button type="button" class="sample" data-url="https://paypa1-secure.com/verify" title="https://paypa1-secure.com/verify">Look-alike PayPal</button>
+                <button type="button" class="sample" data-url="http://192.168.10.5/secure/login.php" title="http://192.168.10.5/secure/login.php">IP address</button>
+                <button type="button" class="sample" data-url="https://www.google.com.security-check.top/signin" title="https://www.google.com.security-check.top/signin">Fake Google</button>
+                <button type="button" class="sample" data-url="https://netflix-billing-update.com/account" title="https://netflix-billing-update.com/account">Fake Netflix billing</button>
+                <button type="button" class="sample" data-url="https://www.paytm.com@secure-pay.top/login" title="https://www.paytm.com@secure-pay.top/login">The @ trick</button>
+                <button type="button" class="sample" data-url="http://sbi-kyc-update.xyz/netbanking" title="http://sbi-kyc-update.xyz/netbanking">Fake bank KYC</button>
+                <button type="button" class="sample" data-url="https://download-free-software.click/setup.exe" title="https://download-free-software.click/setup.exe">Fake download</button>
+            </div>
+        </section>
+
+        <p class="footer">🔒 This scanner only reads the text of the link. It never opens it, and nothing is stored.</p>
+    </main>
+
+    <script>
+        var form = document.getElementById("scan-form");
+        var input = document.getElementById("url");
+        var samples = document.querySelectorAll(".sample");
+        samples.forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                input.value = btn.dataset.url;
+                form.submit();
+            });
+        });
+    </script>
+</body>
+</html>
